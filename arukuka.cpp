@@ -238,7 +238,9 @@ std::vector<int> solver(std::vector<int> hand, const mpz_class& number, int leng
 using hand_type = int[10];
 ALIGNED hand_type g_hand;
 int g_num_hand;
+constexpr int MAX_DIGITS = 16;
 ALIGNED char ans_arr[64];
+static_assert(sizeof(ans_arr) / sizeof(char) > MAX_DIGITS + (MAX_DIGITS - 1) * 2 + 2);
 const char *ans_ptr = nullptr;
 
 namespace belphegor
@@ -430,7 +432,7 @@ static void solver1(const int prev, const int length)
 
 static void solver(const int length)
 {
-	if (length > std::min(g_num_hand, 10)) {
+	if (length > std::min(g_num_hand, MAX_DIGITS)) {
 		return;
 	}
 	{
@@ -491,7 +493,7 @@ static void solver(const int length)
 	for (int64_t p = start; p <= max; ++p)
 	{
 		int64_t d = p - start;
-		if (d * d > start) {
+		if (d * d > 2 * start) {
 			break;
 		}
 		if (!is_possible(p)) {
