@@ -10,6 +10,8 @@
 #include <random>
 #include <algorithm>
 #include <utility>
+#include <cstddef>
+#include <cstdint>
 
 #include <boost/hana/string.hpp>
 
@@ -21,6 +23,42 @@ constexpr const char* revision = "a";
 constexpr const char* ver_date = "20191225";
 
 static double TIME_LIMIT = 10.0;
+
+namespace util
+{
+template < std::size_t N, typename T >
+#if defined( __clang__ ) || defined( __GNUC__ )
+  __attribute__( ( always_inline ) )
+#elif defined( _MSC_VER )
+  __forceinline
+#endif
+[[ nodiscard ]] static constexpr T* assume_aligned( T* ptr )
+{
+#if defined( __clang__ ) || ( defined( __GNUC__ ) && !defined( __ICC ) )
+  return reinterpret_cast< T* >( __builtin_assume_aligned( ptr, N ) );
+#elif defined(_MSC_VER)
+  if ( ( reinterpret_cast< std::uintptr_t >( ptr ) & ( ( 1 << N ) - 1 ) ) == 0 )
+    return ptr;
+  else
+    __assume( 0 );
+#elif defined( __ICC )
+  switch ( N )
+  {
+    case 2: __assume_aligned( ptr, 2 ); break;
+    case 4: __assume_aligned( ptr, 4 ); break;
+    case 8: __assume_aligned( ptr, 8 ); break;
+    case 16: __assume_aligned( ptr, 16 ); break;
+    case 32: __assume_aligned( ptr, 32 ); break;
+    case 64: __assume_aligned( ptr, 64 ); break;
+    case 128: __assume_aligned( ptr, 128 ); break;
+  }
+  return ptr;
+#else
+  // Unknown compiler — do nothing
+  return ptr;
+#endif
+}
+}
 
 void remove_newline(std::string& s)
 {
@@ -196,10 +234,11 @@ std::vector<int> solver(std::vector<int> hand, const mpz_class& number, int leng
 	return ret;
 }
 
+#define ALIGNED alignas(64)
 using hand_type = int[10];
-hand_type g_hand;
+ALIGNED hand_type g_hand;
 int g_num_hand;
-char ans_arr[8192];
+ALIGNED char ans_arr[64];
 const char *ans_ptr = nullptr;
 
 namespace belphegor
@@ -280,8 +319,9 @@ std::vector<int64_t> mersenne_check(int length, int64_t prev = -1)
 	return ret;
 }
 
-static bool is_possible(const int * const __restrict__ cnt)
+static bool is_possible(const int * const __restrict _cnt)
 {
+	const int * const __restrict cnt = util::assume_aligned<64>(_cnt);
 	for (int i = 0; i < 10; ++i)
 	{
 		if (cnt[i] > g_hand[i])
@@ -294,7 +334,7 @@ static bool is_possible(const int * const __restrict__ cnt)
 
 static bool is_possible(int64_t p)
 {
-	int cnt[10] = {0};
+	ALIGNED hand_type cnt = {0};
 	while (p > 0)
 	{
 		int d = p % 10;
