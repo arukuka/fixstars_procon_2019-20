@@ -349,21 +349,20 @@ static bool is_possible(int64_t p)
 
 static void generate_ans(int64_t p)
 {
-	std::stringstream ss;
-	ss << "[";
-	std::string str = std::to_string(p);
-	for (size_t i = 0; i < str.size(); ++i)
+	if (p <= 0)
 	{
-		if (i)
-		{
-			ss << ", ";
-		}
-		ss << str[i];
+		return;
 	}
-	ss << "]";
-	std::string ans = ss.str();
-	std::memcpy(ans_arr, ans.c_str(), ans.size());
-	ans_arr[ans.size()] = '\0';
+	const auto str = std::to_string(p);
+	const size_t n = str.size();
+	ans_arr[0] = '[';
+	for (size_t i = 0; i < n; ++i)
+	{
+		ans_arr[i * 2 + 1] = str[i];
+		ans_arr[i * 2 + 2] = ',';
+	}
+	ans_arr[n * 2] = ']';
+	ans_arr[n * 2 + 1] = '\0';
 	ans_ptr = ans_arr;
 }
 
