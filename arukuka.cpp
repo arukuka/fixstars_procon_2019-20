@@ -1,5 +1,5 @@
 // akemi's PrimeDaihinmin Solver (C) 2019 Fixstars Corp.
-// g++ akemi.cpp -std=c++17 -o akemi -O3 -Wall -Wno-unused-but-set-variable -lgmp
+// g++ -W -Wall -std=c++17 -O3 -march=native -mavx arukuka.cpp -lgmp -o X -static
 
 #include <iostream>
 #include <sstream>
@@ -234,7 +234,8 @@ std::vector<int> solver(std::vector<int> hand, const mpz_class& number, int leng
 	return ret;
 }
 
-#define ALIGNED alignas(64)
+constexpr size_t MAX_ALIGN = alignof(std::max_align_t);
+#define ALIGNED alignas(MAX_ALIGN)
 using hand_type = int[10];
 ALIGNED hand_type g_hand;
 int g_num_hand;
@@ -444,7 +445,7 @@ static void solver(const int length)
 		}
 	}
 
-	int cnt[10];
+	ALIGNED hand_type cnt;
 	std::memcpy(cnt, g_hand, sizeof(g_hand));
 	std::vector<int> atom;
 	for (int i = 0; i < length; ++i)
