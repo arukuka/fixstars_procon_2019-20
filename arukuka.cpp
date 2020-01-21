@@ -366,18 +366,90 @@ static void generate_ans(int64_t p)
 	ans_ptr = ans_arr;
 }
 
+struct penalty_t
+{
+	int even_overflow;           //!< 偶数が奇数より大きくなったときのペナルティ
+	ALIGNED hand_type weakness;  //!< カード事の弱さ
+};
+
+penalty_t g_penalty = {1'000'000, {10, 2, 6, 1, 9, 4, 8, 1, 7, 2}};
+
+static int evaluate(int64_t p)
+{
+	ALIGNED hand_type next;
+	std::memcpy(next, g_hand, sizeof(g_hand));
+	while (p > 0)
+	{
+		--next[p % 10];
+		p /= 10;
+	}
+	int odd, even;
+	odd = even = 0;
+	for (int i = 0; i < 10; ++i)
+	{
+		if (i == 5 || i % 2 == 0)
+		{
+			even += next[i];
+		}
+		else
+		{
+			odd += next[i];
+		}
+	}
+
+	int score = 0;
+
+	if (odd * 3 < even * 2)
+	{
+		score += g_penalty.even_overflow;
+	}
+
+	for (int i = 0; i < 10; ++i)
+	{
+		score += next[i] * g_penalty.weakness[i];
+	}
+
+	return score;
+}
+
+static int helper0(int p)
+{
+	int digits = 0;
+	while (p > 0)
+	{
+		++digits;
+		p /= 10;
+	}
+	switch (p)
+	{
+		case 2:
+			return 10'000'000;
+		case 3:
+			return 5'000'000;
+		default:
+			return 0;
+	}
+}
+
 static void solver0()
 {
 	const int num_first_cards = 5;
 	const int n_max = std::min(g_num_hand, num_first_cards);
 
+	int64_t ans = -1;
+	int best_score = std::numeric_limits<int>::max();
+
 	for (int n = n_max; n > 0; --n)
 	{
 		const auto mer = mersenne_check(n);
-		if (mer.size())
+		for (const int64_t& p : mer)
 		{
-			generate_ans(mer.back());
-			return;
+			const int score = evaluate(p);
+			if (best_score > score)
+			{
+				best_score = score;
+				ans = p;
+			}
 		}
 	}
 
@@ -392,25 +464,49 @@ static void solver0()
 		{
 			continue;
 		}
+
+		const int score = evaluate(p) - helper0(p);
+		if (best_score <= score)
+		{
+			continue;
+		}
+
 		if (!is_prime(p))
 		{
 			continue;
 		}
-		generate_ans(p);
-		return;
+
+		best_score = score;
+		ans = p;
 	}
+	generate_ans(ans);
 }
 
 static void solver1(const int prev, const int length)
 {
-	{
+	if (length != 1) {
 		const auto mer = mersenne_check(length, prev);
 		if (mer.size())
 		{
-			generate_ans(mer.back());
+			int64_t ans = -1;
+			int best_score = std::numeric_limits<int>::max();
+
+			for (const int64_t& p : mer)
+			{
+				const int score = evaluate(p);
+				if (best_score > score)
+				{
+					best_score = score;
+					ans = p;
+				}
+			}
+			generate_ans(ans);
 			return;
 		}
 	}
+
+	int64_t ans = -1;
+	int best_score = std::numeric_limits<int>::max();
 
 	int d = 1;
 	for (; d <= prev; d *= 10);
@@ -421,13 +517,19 @@ static void solver1(const int prev, const int length)
 		{
 			continue;
 		}
+		const int score = evaluate(p);
+		if (best_score <= score)
+		{
+			continue;
+		}
 		if (!is_prime(p))
 		{
 			continue;
 		}
-		generate_ans(p);
-		return;
+		best_score = score;
+		ans = p;
 	}
+	generate_ans(ans);
 }
 
 static void solver(const int length)
@@ -435,8 +537,8 @@ static void solver(const int length)
 	if (length > std::min(g_num_hand, MAX_DIGITS)) {
 		return;
 	}
-	{
-		const auto mer = mersenne_check(length);
+	const auto mer = mersenne_check(length);
+	if (length < 8) {
 		if (mer.size())
 		{
 			generate_ans(mer.back());
@@ -469,6 +571,7 @@ static void solver(const int length)
 		atom.push_back(selected);
 	}
 	std::shuffle(atom.begin(), atom.begin() + length / 2, engine);
+	std::sort(atom.begin() + length / 2, atom.end());
 	if (atom[0] == 0)
 	{
 		for (int i = 1; i < length; ++i)
@@ -489,6 +592,10 @@ static void solver(const int length)
 		max *= 10;
 	}
 	--max;
+
+	int64_t ans = -1;
+	int best_score = std::numeric_limits<int>::max();
+
 	mpz_class x;
 	for (int64_t p = start; p <= max; ++p)
 	{
@@ -499,13 +606,18 @@ static void solver(const int length)
 		if (!is_possible(p)) {
 			continue;
 		}
+		const int score = evaluate(p);
+		if (best_score <= score)
+			continue;
 		x.set_str(std::to_string(p), 10);
 		if (!is_prime(x.get_mpz_t())) {
 			continue;
 		}
-		generate_ans(p);
-		break;
+		best_score = score;
+		ans = p;
 	}
+
+	generate_ans(ans);
 }
 
 int main(void)
