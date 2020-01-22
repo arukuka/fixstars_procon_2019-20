@@ -273,6 +273,12 @@ static bool belphe_check()
 	    && g_hand[1] >= 2
 			&& g_hand[6] >= 3;
 }
+static void preserve_belphe()
+{
+	g_hand[0] -= 26;
+	g_hand[1] -= 2;
+	g_hand[6] -= 3;
+}
 
 std::vector<int64_t> mersenne_check(int length, int64_t prev = -1)
 {
@@ -655,19 +661,22 @@ int main(void)
 			int length = number_ss.str().length();
 
 			ans_ptr = nullptr;
-			if (belphe_check()) {
+			const bool belphe_possible = belphe_check();
+			if (belphe_possible) {
+				preserve_belphe();
+			}
+			switch (numbers.size()) {
+				case 0:
+					solver0();
+					break;
+				case 1:
+					solver1(static_cast<int>(numbers.back().get_ui()), length);
+					break;
+				default:
+					solver(length);
+			}
+			if (!ans_ptr && belphe_possible) {
 				ans_ptr = belphegor::BELPHEGOR_PRIME_CSTR;
-			} else {
-				switch (numbers.size()) {
-					case 0:
-						solver0();
-						break;
-					case 1:
-						solver1(static_cast<int>(numbers.back().get_ui()), length);
-						break;
-					default:
-						solver(length);
-				}
 			}
 
 			if (ans_ptr) {
