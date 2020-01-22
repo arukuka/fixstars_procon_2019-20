@@ -415,6 +415,16 @@ static int evaluate(int64_t p)
 		score += next[i] * g_penalty.weakness[i];
 	}
 
+	int cnt = 0;
+	for (int i = 0; i < 10; ++i)
+	{
+		cnt += next[i];
+	}
+	if (cnt == 0)
+	{
+		score -= 100'000'000;
+	}
+
 	return score;
 }
 
