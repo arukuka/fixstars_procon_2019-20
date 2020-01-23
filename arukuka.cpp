@@ -278,6 +278,7 @@ static void preserve_belphe()
 	g_hand[0] -= 26;
 	g_hand[1] -= 2;
 	g_hand[6] -= 3;
+	g_num_hand -= 31;
 }
 
 std::vector<int64_t> mersenne_check(int length, int64_t prev = -1)
