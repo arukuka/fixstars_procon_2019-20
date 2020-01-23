@@ -354,13 +354,20 @@ static bool is_possible(int64_t p)
 	return is_possible(cnt);
 }
 
-static void generate_ans(int64_t p)
+static bool is_possible(const mpz_class& p)
 {
-	if (p <= 0)
+	std::string str = p.get_str(10);
+	ALIGNED hand_type cnt = {0};
+	for (const auto& c : str)
 	{
-		return;
+		int d = c - '0';
+		++cnt[d];
 	}
-	const auto str = std::to_string(p);
+	return is_possible(cnt);
+}
+
+static void generate_ans(const std::string str)
+{
 	const size_t n = str.size();
 	ans_arr[0] = '[';
 	for (size_t i = 0; i < n; ++i)
@@ -371,6 +378,16 @@ static void generate_ans(int64_t p)
 	ans_arr[n * 2] = ']';
 	ans_arr[n * 2 + 1] = '\0';
 	ans_ptr = ans_arr;
+}
+
+static void generate_ans(int64_t p)
+{
+	if (p <= 0)
+	{
+		return;
+	}
+	const auto str = std::to_string(p);
+	generate_ans(str);
 }
 
 struct penalty_t
@@ -637,6 +654,95 @@ static void solver(const int length)
 	generate_ans(ans);
 }
 
+/**
+ * でかい数用
+ */
+static void solver_massive(const int length)
+{
+	if (length > std::min(g_num_hand, 20))
+	{
+		return;
+	}
+
+	ALIGNED hand_type cnt;
+	std::memcpy(cnt, g_hand, sizeof(g_hand));
+	std::vector<int> atom;
+	for (int i = 0; i < length; ++i)
+	{
+		int max = -1;
+		for (int j = i == 0; j < 10; ++j)
+		{
+			max = std::max(max, cnt[j]);
+		}
+		std::vector<int> box;
+		for (int j = i == 0; j < 10; ++j)
+		{
+			if (cnt[j] != max)
+			{
+				continue;
+			}
+			box.push_back(j);
+		}
+		std::shuffle(box.begin(), box.end(), engine);
+		int selected = box[0];
+		--cnt[selected];
+		atom.push_back(selected);
+	}
+	std::shuffle(atom.begin(), atom.begin() + length / 2, engine);
+	std::sort(atom.begin() + length / 2, atom.end());
+	if (atom[0] == 0)
+	{
+		for (int i = 1; i < length; ++i)
+		{
+			if (atom[i] > 0)
+			{
+				std::swap(atom[0], atom[i]);
+				break;
+			}
+		}
+	}
+	static const std::array<mpz_class, 11> MPZ_NUMS = {
+		0_mpz,
+		1_mpz,
+		2_mpz,
+		3_mpz,
+		4_mpz,
+		5_mpz,
+		6_mpz,
+		7_mpz,
+		8_mpz,
+		9_mpz,
+		10_mpz
+	};
+	mpz_class start = MPZ_NUMS[0];
+	mpz_class max = MPZ_NUMS[1];
+	for (const auto& d : atom)
+	{
+		start *= MPZ_NUMS[10];
+		start += MPZ_NUMS[d];
+		max *= MPZ_NUMS[10];
+	}
+	--max;
+
+	for (mpz_class p = start; p <= max; ++p)
+	{
+		const mpz_class d = p - start;
+		// cannot use this literal: 100'000'000_mpz
+		if (d * d > start/* || d > 100000000_mpz*/) {
+			break;
+		}
+		if (!is_possible(p)) {
+			continue;
+		}
+		if (!is_prime(p.get_mpz_t())) {
+			continue;
+		}
+		const std::string str = p.get_str(10);
+		generate_ans(str);
+		return;
+	}
+}
+
 int main(void)
 {
 	std::ios::sync_with_stdio(false);
@@ -684,7 +790,10 @@ int main(void)
 					solver1(static_cast<int>(numbers.back().get_ui()), length);
 					break;
 				default:
-					solver(length);
+					if (length > 16)
+						solver_massive(length);
+					else
+						solver(length);
 			}
 			if (!ans_ptr && belphe_possible) {
 				ans_ptr = belphegor::BELPHEGOR_PRIME_CSTR;
