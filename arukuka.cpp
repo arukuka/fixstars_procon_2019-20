@@ -450,6 +450,10 @@ static int evaluate(int64_t p)
 	{
 		score -= 100'000'000;
 	}
+	if (cnt == next[3] + next[7])
+	{
+		score -= 50'000'000;
+	}
 
 	return score;
 }
