@@ -60,6 +60,14 @@ template < std::size_t N, typename T >
 }
 }
 
+#ifdef SOLVER_DEBUG
+#define DBG(x) do { std::cerr << __func__ << "(" << __LINE__ << "): " << #x << ": " << (x) << std::endl; } while(0)
+#define dbg_printf fprintf(stderr, ...)
+#else
+#define DBG(...)
+#define dbg_printf(...)
+#endif
+
 void remove_newline(std::string& s)
 {
 	std::string target("\n");
