@@ -248,7 +248,7 @@ using hand_type = int[10];
 ALIGNED hand_type g_hand;
 int g_num_hand;
 constexpr int MAX_DIGITS = 16;
-ALIGNED char ans_arr[64];
+ALIGNED char ans_arr[8192];
 static_assert(sizeof(ans_arr) / sizeof(char) > MAX_DIGITS + (MAX_DIGITS - 1) * 2 + 2);
 const char *ans_ptr = nullptr;
 
@@ -574,6 +574,16 @@ static void solver1(const int prev, const int length)
 	generate_ans(ans);
 }
 
+static int score_card(int c, const int * const __restrict _cnt)
+{
+	const int * const __restrict cnt = util::assume_aligned<MAX_ALIGN>(_cnt);
+	int v = cnt[c];
+	if (v > 0 && (c % 2 == 0 || c == 5)) {
+		v += 1000000;
+	}
+	return v;
+};
+
 static void solver(const int length)
 {
 	if (length > std::min(g_num_hand, MAX_DIGITS)) {
@@ -596,12 +606,14 @@ static void solver(const int length)
 		int max = -1;
 		for (int j = i == 0; j < 10; ++j)
 		{
-			max = std::max(max, cnt[j]);
+			const int s = score_card(j, cnt);
+			max = std::max(max, s);
 		}
 		std::vector<int> box;
 		for (int j = i == 0; j < 10; ++j)
 		{
-			if (cnt[j] != max)
+			const int s = score_card(j, cnt);
+			if (s != max)
 			{
 				continue;
 			}
@@ -613,7 +625,7 @@ static void solver(const int length)
 		atom.push_back(selected);
 	}
 	std::shuffle(atom.begin(), atom.begin() + length / 2, engine);
-	std::sort(atom.begin() + length / 2, atom.end());
+	std::sort(atom.begin() + length / 2, atom.end(), [&pena = std::as_const(g_penalty.weakness)](const int x, const int y) {return pena[x] > pena[y];});
 	if (atom[0] == 0)
 	{
 		for (int i = 1; i < length; ++i)
@@ -667,7 +679,7 @@ static void solver(const int length)
  */
 static void solver_massive(const int length)
 {
-	if (length > std::min(g_num_hand, 20))
+	if (length > g_num_hand /*std::min(g_num_hand, 80)*/)
 	{
 		return;
 	}
@@ -680,12 +692,14 @@ static void solver_massive(const int length)
 		int max = -1;
 		for (int j = i == 0; j < 10; ++j)
 		{
-			max = std::max(max, cnt[j]);
+			const int s = score_card(j, cnt);
+			max = std::max(max, s);
 		}
 		std::vector<int> box;
 		for (int j = i == 0; j < 10; ++j)
 		{
-			if (cnt[j] != max)
+			const int s = score_card(j, cnt);
+			if (s != max)
 			{
 				continue;
 			}
@@ -697,7 +711,7 @@ static void solver_massive(const int length)
 		atom.push_back(selected);
 	}
 	std::shuffle(atom.begin(), atom.begin() + length / 2, engine);
-	std::sort(atom.begin() + length / 2, atom.end());
+	std::sort(atom.begin() + length / 2, atom.end(), [&pena = std::as_const(g_penalty.weakness)](const int x, const int y) {return pena[x] > pena[y];});
 	if (atom[0] == 0)
 	{
 		for (int i = 1; i < length; ++i)
@@ -732,11 +746,24 @@ static void solver_massive(const int length)
 	}
 	--max;
 
-	for (mpz_class p = start; p <= max; ++p)
+	if (start % 2_mpz == 0_mpz)
+	{
+		const mpz_class min = max / 10_mpz + 1_mpz;
+		if (start == min)
+		{
+			++start;
+		}
+		else
+		{
+			--start;
+		}
+	}
+
+	for (mpz_class p = start; p <= max; p += 2)
 	{
 		const mpz_class d = p - start;
 		// cannot use this literal: 100'000'000_mpz
-		if (d * d > start/* || d > 100000000_mpz*/) {
+		if (d * d > start || d > 1000000_mpz) {
 			break;
 		}
 		if (!is_possible(p)) {
@@ -798,7 +825,7 @@ int main(void)
 					solver1(static_cast<int>(numbers.back().get_ui()), length);
 					break;
 				default:
-					if (length > 16)
+					if (length > 12)
 						solver_massive(length);
 					else
 						solver(length);
