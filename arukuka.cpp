@@ -331,7 +331,7 @@ std::vector<int64_t> mersenne_check(int length, int64_t prev = -1)
 
 static bool is_possible(const int * const __restrict _cnt)
 {
-	const int * const __restrict cnt = util::assume_aligned<64>(_cnt);
+	const int * const __restrict cnt = util::assume_aligned<MAX_ALIGN>(_cnt);
 	for (int i = 0; i < 10; ++i)
 	{
 		if (cnt[i] > g_hand[i])
