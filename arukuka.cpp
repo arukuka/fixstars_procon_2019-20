@@ -454,7 +454,7 @@ static int helper0(int p)
 		++digits;
 		p /= 10;
 	}
-	switch (p)
+	switch (digits)
 	{
 		case 2:
 			return 10'000'000;
