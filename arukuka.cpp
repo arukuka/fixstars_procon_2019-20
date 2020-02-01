@@ -782,10 +782,16 @@ static void solver_massive(const int length)
 	}
 }
 
-int main(void)
+int main(int argc, char** argv)
 {
 	std::ios::sync_with_stdio(false);
 	std::string s;
+
+	if (argc > 1)
+	{
+		int x = std::stoi(argv[1]);
+		engine.seed(x);
+	}
 
 	for (;;) {
 		getline(std::cin, s);
