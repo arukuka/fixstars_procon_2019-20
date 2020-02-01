@@ -678,6 +678,29 @@ static void solver(const int length)
 	generate_ans(ans);
 }
 
+static void convert(const std::vector<int>& src, mpz_class& dst)
+{
+	static const std::array<mpz_class, 11> MPZ_NUMS = {
+		0_mpz,
+		1_mpz,
+		2_mpz,
+		3_mpz,
+		4_mpz,
+		5_mpz,
+		6_mpz,
+		7_mpz,
+		8_mpz,
+		9_mpz,
+		10_mpz
+	};
+	dst = MPZ_NUMS[0];
+	for (const auto& d : src)
+	{
+		dst *= MPZ_NUMS[10];
+		dst += MPZ_NUMS[d];
+	}
+}
+
 /**
  * でかい数用
  */
@@ -693,14 +716,16 @@ static void solver_massive(const int length)
 	std::vector<int> atom;
 	for (int i = 0; i < length; ++i)
 	{
+		const int from = i == 0 || i + 1 >= length ? 1 : 0;
+		const int step = i + 1 < length ? 1 : 2;
 		int max = -1;
-		for (int j = i == 0; j < 10; ++j)
+		for (int j = from; j < 10; j += step)
 		{
 			const int s = score_card(j, cnt);
 			max = std::max(max, s);
 		}
 		std::vector<int> box;
-		for (int j = i == 0; j < 10; ++j)
+		for (int j = from; j < 10; j += step)
 		{
 			const int s = score_card(j, cnt);
 			if (s != max)
@@ -708,6 +733,10 @@ static void solver_massive(const int length)
 				continue;
 			}
 			box.push_back(j);
+		}
+		if (box.empty())
+		{
+			return;
 		}
 		std::shuffle(box.begin(), box.end(), engine);
 		int selected = box[0];
@@ -727,58 +756,62 @@ static void solver_massive(const int length)
 			}
 		}
 	}
-	static const std::array<mpz_class, 11> MPZ_NUMS = {
-		0_mpz,
-		1_mpz,
-		2_mpz,
-		3_mpz,
-		4_mpz,
-		5_mpz,
-		6_mpz,
-		7_mpz,
-		8_mpz,
-		9_mpz,
-		10_mpz
-	};
-	mpz_class start = MPZ_NUMS[0];
-	mpz_class max = MPZ_NUMS[1];
-	for (const auto& d : atom)
-	{
-		start *= MPZ_NUMS[10];
-		start += MPZ_NUMS[d];
-		max *= MPZ_NUMS[10];
-	}
-	--max;
 
-	if (start % 2_mpz == 0_mpz)
+	int odd_length = 0;
+	for (auto ite = atom.rbegin(); ite != atom.rend(); ++ite)
 	{
-		const mpz_class min = max / 10_mpz + 1_mpz;
-		if (start == min)
+		if (*ite % 2 == 0 || *ite == 5)
 		{
-			++start;
-		}
-		else
-		{
-			--start;
-		}
-	}
-
-	for (mpz_class p = start; p <= max; p += 2)
-	{
-		const mpz_class d = p - start;
-		// cannot use this literal: 100'000'000_mpz
-		if (d * d > start || d > 1000000_mpz) {
 			break;
 		}
-		if (!is_possible(p)) {
-			continue;
+		++odd_length;
+	}
+
+	mpz_class number;
+	convert(atom, number);
+
+	if (odd_length > 3)
+	{
+		// shuffle
+		assert (is_possible(number));
+		for (int i = 0; i < 1000; ++i)
+		{
+			if (is_prime(number.get_mpz_t())) {
+				break;
+			}
+			std::shuffle(atom.end() - odd_length, atom.end(), engine);
+			convert(atom, number);
 		}
-		if (!is_prime(p.get_mpz_t())) {
-			continue;
+		if (is_prime(number.get_mpz_t())) {
+			const std::string str = number.get_str(10);
+			generate_ans(str);
 		}
-		const std::string str = p.get_str(10);
-		generate_ans(str);
-		return;
+	}
+	else
+	{
+		// broute force
+		for (int i = 1; i < 1000; i += 2)
+		{
+			int sub = i;
+			for (int j = 0; j < 3; ++j)
+			{
+				atom[length - 1 - j] = sub % 10;
+				sub /= 10;
+			}
+			convert(atom, number);
+			if (!is_possible(number))
+			{
+				continue;
+			}
+			if (!is_prime(number.get_mpz_t()))
+			{
+				continue;
+			}
+			const std::string str = number.get_str(10);
+			generate_ans(str);
+			// you can return and evaluate
+			return;
+		}
 	}
 }
 
