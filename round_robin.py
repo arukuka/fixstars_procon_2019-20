@@ -4,6 +4,7 @@
 import subprocess
 import threading
 import random
+import sys
 from argparse import ArgumentParser
 from pathlib import Path
 import hashlib
@@ -47,8 +48,11 @@ def round_robin(args):
   entries.sort()
   pprint(entries)
 
-  matches = set(itertools.permutations(entries, 4))
+  matches = list(set(itertools.permutations(entries, 4)))
+  matches.sort()
   num_match = len(matches)
+
+  seed = 0
 
   results = dict()
   for i in range(args.iter):
@@ -57,9 +61,14 @@ def round_robin(args):
     for battle in matches:
       print("\t[{} / {}] {}".format(index, num_match, tuple([hash2entry[x].name for x in list(battle)])))
       index = index + 1
-      command = ["python", str(args.controller)] + list(itertools.chain.from_iterable([[x, str(hash2entry[x])] for x in list(battle)]))
-      process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-      for result in parse_result(process.stdout.decode("utf-8")):
+      command = ["python", str(args.controller)] \
+          + list(itertools.chain.from_iterable([[x, str(hash2entry[x]) + ' ' + str(seed)] for x in list(battle)])) \
+          + ["--seed", str(seed), "--show"]
+      print(command, file=sys.stderr)
+      process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      stdout = process.stdout.decode("utf-8")
+      stderr = process.stderr.decode("utf-8")
+      for result in parse_result(stdout):
         if result["name"] in results:
           sub = results[result["name"]]
           sub["score"] = sub["score"] + result["score"]
@@ -70,6 +79,7 @@ def round_robin(args):
           result["exe"] = hash2entry[result["name"]].name
           results[result["name"]] = result
       pprint(results)
+      seed = seed + 1
   pprint(results)
 
 def main():
