@@ -329,6 +329,7 @@ def main():
     parser.add_option("-s", "--show", action="store_true", dest="show", default=False, help="show game")
     parser.add_option("-t", "--time", action="store", type="float", dest="time", default=10.0, help="time limit")
     parser.add_option("-d", "--debug", action="store_true", dest="debug", default=False, help="print for debug")
+    parser.add_option("--seed", type=int, dest="seed", default=-1, help="specify random seed")
 
     (options, args) = parser.parse_args()
 
@@ -338,6 +339,9 @@ def main():
     SHOW_GAME = options.show
     TIME_LIMIT = options.time
     DEBUG_PRINT = options.debug
+
+    if options.seed >= 0:
+        random.seed(options.seed)
 
     start_time = time.time()
     n = len(args) // 2
