@@ -18,6 +18,9 @@ constexpr const char* version  = "0.06";
 constexpr const char* revision = "a";
 constexpr const char* ver_date = "20191225";
 
+std::random_device seed_gen;
+std::default_random_engine engine(seed_gen());
+
 static double TIME_LIMIT = 10.0;
 
 void remove_newline(std::string& s)
@@ -47,8 +50,6 @@ void string2digits(const std::string& s, std::vector<int>& v)
 
 std::string make_candidate(std::vector<int> hand, int length)
 {
-    std::random_device seed_gen;
-    std::default_random_engine engine(seed_gen());
     std::stringstream ss("");
 
     if (length == 1) {
@@ -136,8 +137,6 @@ std::string make_Mersenne(std::vector<int> hand, int length)
 
 std::vector<int> solver(std::vector<int> hand, const mpz_class& number, int length)
 {
-      std::random_device seed_gen;
-      std::default_random_engine engine(seed_gen());
     std::vector<int> cards;
     std::vector<int> ret({});
 
@@ -182,8 +181,12 @@ int main(int argc, char* argv[])
 {
     std::string s;
     const int num_first_cards = 5;
-      std::random_device seed_gen;
-      std::default_random_engine engine(seed_gen());
+
+    if (argc > 1)
+    {
+        int x = std::stoi(argv[1]);
+        engine.seed(x);
+    }
 
     for (;;) {
         getline(std::cin, s);
