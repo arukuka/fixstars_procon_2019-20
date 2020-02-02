@@ -244,7 +244,8 @@ std::vector<int> solver(std::vector<int> hand, const mpz_class& number, int leng
 
 constexpr size_t MAX_ALIGN = alignof(std::max_align_t);
 #define ALIGNED alignas(MAX_ALIGN)
-using hand_type = int[10];
+using card_type = int16_t;
+using hand_type = card_type[10];
 ALIGNED hand_type g_hand;
 int g_num_hand;
 constexpr int MAX_DIGITS = 16;
@@ -337,9 +338,9 @@ std::vector<int64_t> mersenne_check(int length, int64_t prev = -1)
 	return ret;
 }
 
-static bool is_possible(const int * const __restrict _cnt)
+static bool is_possible(const card_type * const __restrict _cnt)
 {
-	const int * const __restrict cnt = util::assume_aligned<MAX_ALIGN>(_cnt);
+	const card_type * const __restrict cnt = util::assume_aligned<MAX_ALIGN>(_cnt);
 	for (int i = 0; i < 10; ++i)
 	{
 		if (cnt[i] > g_hand[i])
@@ -578,9 +579,9 @@ static void solver1(const int prev, const int length)
 	generate_ans(ans);
 }
 
-static int score_card(int c, const int * const __restrict _cnt)
+static int score_card(int c, const card_type * const __restrict _cnt)
 {
-	const int * const __restrict cnt = util::assume_aligned<MAX_ALIGN>(_cnt);
+	const card_type * const __restrict cnt = util::assume_aligned<MAX_ALIGN>(_cnt);
 	int v = cnt[c];
 	if (v > 0 && (c % 2 == 0 || c == 5)) {
 		v += 1000000;
