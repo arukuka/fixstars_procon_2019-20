@@ -298,7 +298,7 @@ class PrimeDaihinmin:
     def finish(self):
         results = []
         for player in self.players:
-            results.append([len(player.hand) if player.status in ("OK", "PASSED", "MERSENNE") else self.max_cards, player.name, player.status, player.time])
+            results.append([len(player.hand) if player.status in self.NORMAL_STATES + ("PASSED",) else self.max_cards, player.name, player.status, player.time])
         results.sort()
 
         rank = self.num_players
