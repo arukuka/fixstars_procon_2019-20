@@ -69,6 +69,31 @@ template < std::size_t N, typename T >
 #define dbg_printf(...)
 #endif
 
+template <typename F, typename S>
+static std::ostream& operator<<(std::ostream& os, const std::pair<F, S>& p)
+{
+	os << "{";
+	os << p.first;
+	os << ", ";
+	os << p.second;
+	os << "}";
+	return os;
+}
+
+template <typename T>
+static std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec)
+{
+	os << "[";
+	for (size_t i = 0; i < vec.size(); ++i)
+	{
+		if (i)
+			os << ", ";
+		os << vec[i];
+	}
+	os << "]";
+	return os;
+}
+
 void remove_newline(std::string& s)
 {
 	std::string target("\n");
