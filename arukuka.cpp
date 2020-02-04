@@ -23,6 +23,7 @@ constexpr const char* revision = "a";
 constexpr const char* ver_date = "20191225";
 
 static double TIME_LIMIT = 10.0;
+const int NUM_FIRST_CARDS = 5;
 
 namespace util
 {
@@ -459,6 +460,74 @@ static int evaluate(int64_t p)
 	return score;
 }
 
+int g_action_rewords[NUM_FIRST_CARDS + 1];
+
+static void set_action_rewords(const std::vector<std::pair<std::string, card_type>>& hands, const std::string& name)
+{
+	memset(g_action_rewords, 0, sizeof(g_action_rewords));
+	const size_t n = hands.size();
+	size_t pos_me = 0;
+	for (size_t i = 0; i < n; ++i)
+	{
+		if (hands[i].first == name)
+		{
+			pos_me = i;
+			break;
+		}
+	}
+	for (int start = 1; start <= NUM_FIRST_CARDS; ++start)
+	{
+		auto trial = hands;
+		size_t index = pos_me;
+		int num_cards = start;
+		size_t last = n + 1;
+		for (;;)
+		{
+			if (trial[index].second >= num_cards)
+			{
+				trial[index].second -= num_cards;
+				num_cards += num_cards;
+				last = index;
+				if (trial[index].second == 0)
+				{
+					break;
+				}
+			}
+			else
+			{
+				if (last == index)
+				{
+					break;
+				}
+			}
+			++index;
+			index %= n;
+		}
+		if (pos_me == last)
+		{
+			g_action_rewords[start] += 5'000'000;
+		}
+		auto result = trial;
+		std::sort(result.begin(), result.end(), [](auto a, auto b){ return a.second < b.second; });
+		std::map<std::string, int> places;
+		card_type prev = -1;
+		int place = -1;
+		for (size_t i = 0; i < n; ++i)
+		{
+			if (prev != result[i].second)
+			{
+				prev = result[i].second;
+				++place;
+			}
+			places[result[i].first] = place;
+		}
+		if (places[name] == 0)
+		{
+			g_action_rewords[start] += 10'000'000;
+		}
+	}
+}
+
 static int helper0(int p)
 {
 	int digits = 0;
@@ -467,21 +536,12 @@ static int helper0(int p)
 		++digits;
 		p /= 10;
 	}
-	switch (digits)
-	{
-		case 2:
-			return 10'000'000;
-		case 3:
-			return 5'000'000;
-		default:
-			return 0;
-	}
+	return g_action_rewords[digits];
 }
 
 static void solver0()
 {
-	const int num_first_cards = 5;
-	const int n_max = std::min(g_num_hand, num_first_cards);
+	const int n_max = std::min(g_num_hand, NUM_FIRST_CARDS);
 
 	int64_t ans = -1;
 	int best_score = std::numeric_limits<int>::max();
@@ -833,11 +893,11 @@ int main(int argc, char** argv)
 		auto action = obj["action"];
 
 		if (action == "play") {
-			auto name(obj["name"]);
+			const auto name(obj["name"].get<std::string>());
 			auto hand_(obj["hand"]);
 			auto numbers_(obj["numbers"]);
 			// auto record(obj["record"]);
-			// auto hands(obj["hands"]);
+			const auto hands_(obj["hands"]);
 
 			memset(g_hand, 0, sizeof(g_hand));
 			g_num_hand = hand_.size();
@@ -853,6 +913,14 @@ int main(int argc, char** argv)
 				n.set_str(number, 10);
 				numbers.push_back(n);
 			}
+
+			std::vector<std::pair<std::string, card_type>> hands;
+			for (const auto& h : hands_) {
+				const auto p = h.get<std::pair<std::string, card_type>>();
+				hands.push_back(p);
+			}
+
+			set_action_rewords(hands, name);
 
 			int length = number_ss.str().length();
 
