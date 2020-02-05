@@ -71,6 +71,7 @@ def round_robin(args):
       stderr = process.stderr.decode("utf-8")
       for result in parse_result(stdout):
         name = battlers[int(result["name"])]
+        del result["name"]
         if name in results:
           sub = results[name]
           sub["score"] = sub["score"] + result["score"]
