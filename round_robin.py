@@ -59,25 +59,27 @@ def round_robin(args):
     print("[{} / {}]".format(i, args.iter))
     index = 0
     for battle in matches:
-      print("\t[{} / {}] {}".format(index, num_match, tuple([hash2entry[x].name for x in list(battle)])))
+      battlers = list(battle)
+      print("\t[{} / {}] {}".format(index, num_match, tuple([hash2entry[x].name for x in battlers])))
       index = index + 1
       command = ["python", str(args.controller)] \
-          + list(itertools.chain.from_iterable([[x, str(hash2entry[x]) + ' ' + str(seed)] for x in list(battle)])) \
+          + list(itertools.chain.from_iterable([[str(i), str(hash2entry[x]) + ' ' + str(seed)] for i, x in zip(range(len(battlers)), battlers)])) \
           + ["--seed", str(seed), "--show"]
       print(command, file=sys.stderr)
       process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       stdout = process.stdout.decode("utf-8")
       stderr = process.stderr.decode("utf-8")
       for result in parse_result(stdout):
-        if result["name"] in results:
-          sub = results[result["name"]]
+        name = battlers[int(result["name"])]
+        if name in results:
+          sub = results[name]
           sub["score"] = sub["score"] + result["score"]
           sub["remain"] = sub["remain"] + result["remain"]
           sub["err"] = sub["err"] or result["err"]
-          results[result["name"]] = sub
+          results[name] = sub
         else:
-          result["exe"] = hash2entry[result["name"]].name
-          results[result["name"]] = result
+          result["exe"] = hash2entry[name].name
+          results[name] = result
       pprint(results)
       seed = seed + 1
   pprint(results)
