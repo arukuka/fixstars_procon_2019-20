@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <deque>
 #include <map>
 #include <random>
 #include <algorithm>
@@ -901,6 +902,21 @@ static void solver_massive(const int length)
 	}
 }
 
+std::deque<std::string> g_win_root;
+static void search_win(const bool belphe_possible, const int length, const mpz_class& prev)
+{
+	// すでに確立していたら出せるか確認する
+	if (g_win_root.size())
+	{
+		// TODO
+	}
+	if (length > 0)
+	{
+		// Belphe cut か Mersenne cut ができるか確認
+	}
+	// 探索
+}
+
 int main(int argc, char** argv)
 {
 	std::ios::sync_with_stdio(false);
@@ -911,6 +927,8 @@ int main(int argc, char** argv)
 		int x = std::stoi(argv[1]);
 		engine.seed(x);
 	}
+
+	g_win_root.clear();
 
 	for (;;) {
 		getline(std::cin, s);
@@ -954,21 +972,27 @@ int main(int argc, char** argv)
 			if (belphe_possible) {
 				preserve_belphe();
 			}
-			switch (numbers.size()) {
-				case 0:
-					solver0();
-					break;
-				case 1:
-					solver1(static_cast<int>(numbers.back().get_ui()), length);
-					break;
-				default:
-					if (length > 12)
-						solver_massive(length);
-					else
-						solver(length);
-			}
-			if (!ans_ptr && belphe_possible) {
-				ans_ptr = belphegor::BELPHEGOR_PRIME_CSTR;
+
+			search_win(belphe_possible, length, numbers.size() ? numbers.back() : 0_mpz);
+			if (g_win_root.size()) {
+				// TODO
+			} else {
+				switch (numbers.size()) {
+					case 0:
+						solver0();
+						break;
+					case 1:
+						solver1(static_cast<int>(numbers.back().get_ui()), length);
+						break;
+					default:
+						if (length > 12)
+							solver_massive(length);
+						else
+							solver(length);
+				}
+				if (!ans_ptr && belphe_possible) {
+					ans_ptr = belphegor::BELPHEGOR_PRIME_CSTR;
+				}
 			}
 
 			if (ans_ptr) {
