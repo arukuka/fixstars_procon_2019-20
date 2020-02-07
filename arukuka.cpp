@@ -317,38 +317,40 @@ static void preserve_belphe()
 	g_num_hand -= 31;
 }
 
-std::vector<int64_t> mersenne_check(int length, int64_t prev = -1)
+std::vector<int64_t> mersenne_check(int length, int64_t prev = -1, const card_type * const __restrict _hand = g_hand)
 {
+	const card_type * const __restrict hand = util::assume_aligned<MAX_ALIGN>(_hand);
+
 	std::vector<int64_t> mer;
 
 	switch(length) {
 		case 1:
-			if (g_hand[3] >= 1) mer.push_back(3);
-			if (g_hand[7] >= 1) mer.push_back(7);
+			if (hand[3] >= 1) mer.push_back(3);
+			if (hand[7] >= 1) mer.push_back(7);
 			break;
 		case 2:
-			if (g_hand[3] >= 1 && g_hand[1] >= 1) mer.push_back(31);
+			if (hand[3] >= 1 && hand[1] >= 1) mer.push_back(31);
 			break;
 		case 3:
-			if (g_hand[1] >= 1 && g_hand[2] >= 1 && g_hand[7] >= 1) mer.push_back(127);
+			if (hand[1] >= 1 && hand[2] >= 1 && hand[7] >= 1) mer.push_back(127);
 			break;
 		case 4:
-			if (g_hand[8] >= 1 && g_hand[1] >= 2 && g_hand[9] >= 1) mer.push_back(8191);
+			if (hand[8] >= 1 && hand[1] >= 2 && hand[9] >= 1) mer.push_back(8191);
 			break;
 		case 6:
-			if (g_hand[0] >= 1 && g_hand[1] >= 3
-			    && g_hand[3] >= 1 && g_hand[7] >= 1)
+			if (hand[0] >= 1 && hand[1] >= 3
+			    && hand[3] >= 1 && hand[7] >= 1)
 				mer.push_back(131071);
-			if (g_hand[2] >= 2 && g_hand[4] >= 1
-			    && g_hand[5] >= 1 && g_hand[7] >= 1
-			    && g_hand[8] >= 1)
+			if (hand[2] >= 2 && hand[4] >= 1
+			    && hand[5] >= 1 && hand[7] >= 1
+			    && hand[8] >= 1)
 				mer.push_back(524287);
 			break;
 		case 10:
-			if (g_hand[1] >= 1 && g_hand[2] >= 1
-			    && g_hand[3] >= 1 && g_hand[4] >= 3
-			    && g_hand[6] >= 1 && g_hand[7] >= 2
-					&& g_hand[8] >= 1)
+			if (hand[1] >= 1 && hand[2] >= 1
+			    && hand[3] >= 1 && hand[4] >= 3
+			    && hand[6] >= 1 && hand[7] >= 2
+					&& hand[8] >= 1)
 				mer.push_back(2147483647);
 			break;
 	}
@@ -365,12 +367,13 @@ std::vector<int64_t> mersenne_check(int length, int64_t prev = -1)
 	return ret;
 }
 
-static bool is_possible(const card_type * const __restrict _cnt)
+static bool is_possible(const card_type * const __restrict _cnt, const card_type * const __restrict _hand = g_hand)
 {
 	const card_type * const __restrict cnt = util::assume_aligned<MAX_ALIGN>(_cnt);
+	const card_type * const __restrict hand = util::assume_aligned<MAX_ALIGN>(_hand);
 	for (int i = 0; i < 10; ++i)
 	{
-		if (cnt[i] > g_hand[i])
+		if (cnt[i] > hand[i])
 		{
 			return false;
 		}
@@ -378,7 +381,7 @@ static bool is_possible(const card_type * const __restrict _cnt)
 	return true;
 }
 
-static bool is_possible(int64_t p)
+static bool is_possible(int64_t p, const card_type * const __restrict _hand = g_hand)
 {
 	ALIGNED hand_type cnt = {0};
 	while (p > 0)
@@ -387,12 +390,11 @@ static bool is_possible(int64_t p)
 		++cnt[d];
 		p /= 10;
 	}
-	return is_possible(cnt);
+	return is_possible(cnt, _hand);
 }
 
-static bool is_possible(const mpz_class& p)
+static bool is_possible(const std::string& str)
 {
-	std::string str = p.get_str(10);
 	ALIGNED hand_type cnt = {0};
 	for (const auto& c : str)
 	{
@@ -400,6 +402,12 @@ static bool is_possible(const mpz_class& p)
 		++cnt[d];
 	}
 	return is_possible(cnt);
+}
+
+static bool is_possible(const mpz_class& p)
+{
+	const std::string str = p.get_str(10);
+	return is_possible(str);
 }
 
 static void generate_ans(const std::string str)
