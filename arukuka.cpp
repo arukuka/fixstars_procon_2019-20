@@ -8,6 +8,7 @@
 #include <vector>
 #include <deque>
 #include <map>
+#include <set>
 #include <random>
 #include <algorithm>
 #include <utility>
@@ -916,13 +917,169 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 	// すでに確立していたら出せるか確認する
 	if (g_win_root.size())
 	{
-		// TODO
+		const std::string next = g_win_root.front();
+		if (is_possible(next))
+		{
+			return;
+		}
+		g_win_root.clear();
 	}
+
+	struct Node
+	{
+		ALIGNED std::array<card_type, 10> cur_hand;
+		card_type remain;
+		bool belphe_possible;
+		std::shared_ptr<Node> parent;
+		std::string prev_action;
+		Node()
+				: cur_hand()
+				, remain(0)
+				, parent()
+				, prev_action() {}
+		Node(const Node& node)
+				: cur_hand(node.cur_hand)
+				, remain(node.remain)
+				, parent(node.parent)
+				, prev_action(node.prev_action) {}
+
+		std::shared_ptr<Node> next(int64_t p) const
+		{
+			auto next = std::make_shared<Node>(*this);
+			while (p)
+			{
+				const auto d = p % 10;
+				next->cur_hand[d]--;
+				next->remain--;
+				p /= 10;
+			}
+			next->prev_action = std::to_string(p);
+			return next;
+		}
+		std::shared_ptr<Node> use_belphe() const
+		{
+			auto next  = std::make_shared<Node>(*this);
+			next->belphe_possible = false;
+			next->prev_action = std::string(belphegor::BELPHEGOR_PRIME_CSTR);
+			return next;
+		}
+	};
+
+	struct NodePriority
+	{
+		bool operator()(const std::shared_ptr<Node> lhs, const std::shared_ptr<Node> rhs) const
+		{
+			if (lhs->remain != rhs->remain)
+			{
+				return lhs->remain < rhs->remain;
+			}
+			return rhs->belphe_possible > lhs->belphe_possible;
+		}
+	};
+
+	std::set<std::pair<bool, std::array<card_type, 10>>> done;
+
+	std::shared_ptr<Node> initial_state = std::make_shared<Node>();
+	std::memcpy(initial_state->cur_hand.data(), g_hand, sizeof(g_num_hand));
+	initial_state->remain = 0;
+	for (const auto c : initial_state->cur_hand)
+	{
+		initial_state->remain += c;
+	}
+	initial_state->belphe_possible = belphe_possible;
+
+	std::multiset<std::shared_ptr<Node>, NodePriority> tree;
 	if (length > 0)
 	{
-		// Belphe cut か Mersenne cut ができるか確認
+		std::vector<int64_t> mers;
+		if (length <= 10)
+		{
+			mers = mersenne_check(length, prev.get_si());
+		}
+		if (mers.size())
+		{
+			for (const auto& p : mers)
+			{
+				tree.insert(initial_state->next(p));
+			}
+		}
+		else if (belphe_possible)
+		{
+			initial_state->belphe_possible = false;
+			tree.insert(initial_state);
+		}
+		else
+		{
+			return;
+		}
 	}
+	else
+	{
+		tree.insert(initial_state);
+	}
+
+	std::shared_ptr<Node> ans;
 	// 探索
+	for (int iteration = 0; iteration < 1'000; ++iteration)
+	{
+		if (tree.empty())
+		{
+			break;
+		}
+		auto ite = tree.begin();
+		const std::shared_ptr<Node> node = *ite;
+		tree.erase(ite);
+
+		if (node->remain == 0 && node->belphe_possible == false)
+		{
+			ans = node;
+			break;
+		}
+
+		// max cut
+		{
+			constexpr int max_cut_numbers[6] = {
+				-1,
+				7, // NOTICE: it is mersenne
+				97,
+				997,
+				9973,
+				99991
+			};
+			for (int i = 2; i <= 5; ++i)
+			{
+				const int p = max_cut_numbers[i];
+				if (is_possible(p, node->cur_hand.data()))
+				{
+					continue;
+					tree.insert(node->next(p));
+				}
+			}
+		}
+		// mersenne cut
+		for (int i = 1; i <= 5; ++i)
+		{
+			for (const auto p : mersenne_check(i, -1, node->cur_hand.data()))
+			{
+				tree.insert(node->next(p));
+			}
+		}
+		// belphe cut
+		if (node->belphe_possible)
+		{
+			tree.insert(node->use_belphe());
+		}
+		// 5!
+		if (node->remain <= 5)
+		{
+
+		}
+	}
+
+	if (ans)
+	{
+		// TODO generate
+	}
 }
 
 int main(int argc, char** argv)
