@@ -943,9 +943,10 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 				, parent(node.parent)
 				, prev_action(node.prev_action) {}
 
-		std::shared_ptr<Node> next(int64_t p) const
+		std::shared_ptr<Node> next(int64_t p, const std::shared_ptr<Node> parent) const
 		{
 			auto next = std::make_shared<Node>(*this);
+			next->prev_action = std::to_string(p);
 			while (p)
 			{
 				const auto d = p % 10;
@@ -953,14 +954,15 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 				next->remain--;
 				p /= 10;
 			}
-			next->prev_action = std::to_string(p);
+			next->parent = parent;
 			return next;
 		}
-		std::shared_ptr<Node> use_belphe() const
+		std::shared_ptr<Node> use_belphe(const std::shared_ptr<Node> parent) const
 		{
 			auto next  = std::make_shared<Node>(*this);
 			next->belphe_possible = false;
 			next->prev_action = std::string(belphegor::BELPHEGOR_PRIME_CSTR);
+			next->parent = parent;
 			return next;
 		}
 	};
@@ -980,7 +982,7 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 	std::set<std::pair<bool, std::array<card_type, 10>>> done;
 
 	std::shared_ptr<Node> initial_state = std::make_shared<Node>();
-	std::memcpy(initial_state->cur_hand.data(), g_hand, sizeof(g_num_hand));
+	std::memcpy(initial_state->cur_hand.data(), g_hand, sizeof(g_hand));
 	initial_state->remain = 0;
 	for (const auto c : initial_state->cur_hand)
 	{
@@ -1000,13 +1002,12 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 		{
 			for (const auto& p : mers)
 			{
-				tree.insert(initial_state->next(p));
+				tree.insert(initial_state->next(p, initial_state));
 			}
 		}
 		else if (belphe_possible)
 		{
-			initial_state->belphe_possible = false;
-			tree.insert(initial_state);
+			tree.insert(initial_state->use_belphe(initial_state));
 		}
 		else
 		{
@@ -1035,6 +1036,14 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 			ans = node;
 			break;
 		}
+		{
+			const auto state = std::make_pair(node->belphe_possible, node->cur_hand);
+			if (done.count(state))
+			{
+				continue;
+			}
+			done.insert(state);
+		}
 
 		// max cut
 		{
@@ -1052,7 +1061,7 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 				if (is_possible(p, node->cur_hand.data()))
 				{
 					continue;
-					tree.insert(node->next(p));
+					tree.insert(node->next(p, node));
 				}
 			}
 		}
@@ -1061,24 +1070,71 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 		{
 			for (const auto p : mersenne_check(i, -1, node->cur_hand.data()))
 			{
-				tree.insert(node->next(p));
+				tree.insert(node->next(p, node));
 			}
 		}
 		// belphe cut
 		if (node->belphe_possible)
 		{
-			tree.insert(node->use_belphe());
+			tree.insert(node->use_belphe(node));
 		}
+
 		// 5!
 		if (node->remain <= 5)
 		{
-
+			if (node->remain == 1)
+			{
+				int p = 0;
+				for (int i = 0; i < 10; ++i)
+				{
+					if (node->cur_hand[i])
+					{
+						p = i;
+						break;
+					}
+				}
+				if (is_prime(p))
+				{
+					tree.insert(node->next(p, node));
+				}
+			}
+			else
+			{
+				std::vector<int> cards;
+				cards.reserve(5);
+				for (int i = 0; i < 10; ++i)
+				{
+					for (int j = 0; j < node->cur_hand[i]; ++j)
+					{
+						cards.push_back(i);
+					}
+				}
+				std::sort(cards.begin(), cards.end());
+				do
+				{
+					int p = 0;
+					for (const int x : cards)
+					{
+						if (x < 0)
+						{
+							continue;
+						}
+						p *= 10;
+						p += x;
+					}
+					if (is_prime(p))
+					{
+						tree.insert(node->next(p, node));
+					}
+				} while (std::next_permutation(cards.begin(), cards.end()));
+			}
 		}
 	}
 
-	if (ans)
+	while (ans && ans->parent)
 	{
-		// TODO generate
+		g_win_root.push_front(ans->prev_action);
+		ans = ans->parent;
 	}
 }
 
@@ -1140,7 +1196,9 @@ int main(int argc, char** argv)
 
 			search_win(belphe_possible, length, numbers.size() ? numbers.back() : 0_mpz);
 			if (g_win_root.size()) {
-				// TODO
+				const std::string act = g_win_root.front();
+				g_win_root.pop_front();
+				generate_ans(act);
 			} else {
 				switch (numbers.size()) {
 					case 0:
