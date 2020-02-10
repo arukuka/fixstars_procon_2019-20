@@ -975,7 +975,7 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 		{
 			auto next  = std::make_shared<Node>(*this);
 			next->belphe_possible = false;
-			next->prev_action = std::string(belphegor::BELPHEGOR_PRIME_CSTR);
+			next->prev_action = "1000000000000066600000000000001";
 			next->parent = parent;
 			return next;
 		}
