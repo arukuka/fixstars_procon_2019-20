@@ -1074,7 +1074,6 @@ static void search_win(const bool belphe_possible, const int length, const mpz_c
 				const int p = max_cut_numbers[i];
 				if (is_possible(p, node->cur_hand.data()))
 				{
-					continue;
 					tree.insert(node->next(p, node));
 				}
 			}
