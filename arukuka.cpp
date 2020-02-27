@@ -11,6 +11,8 @@
 #include <set>
 #include <random>
 #include <algorithm>
+#include <filesystem>
+#include <streambuf>
 #include <utility>
 #include <cstddef>
 #include <cstdint>
@@ -1097,6 +1099,37 @@ int main(int argc, char** argv)
 		int x = std::stoi(argv[1]);
 		engine.seed(x);
 	}
+
+#ifdef OPTIMIZE_PARAM
+	{
+		DBG("load param");
+		std::filesystem::path path = std::filesystem::current_path();
+		path = path.parent_path();
+		path += "param.json";
+		std::ifstream ifs(path);
+		std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+		DBG(str);
+		nlohmann::json obj = nlohmann::json::parse(str);
+
+		g_penalty.cards_num = obj["cards_num"].get<int>();
+		g_penalty.random = obj["random"].get<int>();
+		std::vector<int> weakness;
+		auto _weakness(obj["weakness"]);
+		for (const auto& w : _weakness)
+		{
+			weakness.push_back(w.get<int>());
+		}
+		if (weakness.size() != 10)
+		{
+			DBG("funny!");
+			return -1;
+		}
+		for (int i = 0; i < 10; ++i)
+		{
+			g_penalty.weakness[i] = weakness[i];
+		}
+	}
+#endif
 
 	{
 		decltype(g_dice_dist)::param_type param(0, g_penalty.random + 1);
