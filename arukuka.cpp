@@ -451,11 +451,13 @@ static void generate_ans(int64_t p)
 
 struct penalty_t
 {
-	int even_overflow;           //!< 偶数が奇数より大きくなったときのペナルティ
+	int cards_num;               //!< カードをたくさんもっていることによるペナルティ
+	int random;                  //!< 乱数要素
 	ALIGNED hand_type weakness;  //!< カード事の弱さ
 };
 
-penalty_t g_penalty = {1'000'000, {10, 2, 6, 1, 9, 4, 8, 1, 7, 2}};
+penalty_t g_penalty = {1'000'000, 50, {1000, 200, 600, 100, 900, 400, 800, 100, 700, 200}};
+std::uniform_int_distribution<> g_dice_dist;
 
 static int evaluate(int64_t p)
 {
@@ -466,26 +468,8 @@ static int evaluate(int64_t p)
 		--next[p % 10];
 		p /= 10;
 	}
-	int odd, even;
-	odd = even = 0;
-	for (int i = 0; i < 10; ++i)
-	{
-		if (i == 5 || i % 2 == 0)
-		{
-			even += next[i];
-		}
-		else
-		{
-			odd += next[i];
-		}
-	}
 
 	int score = 0;
-
-	if (odd * 3 < even * 2)
-	{
-		score += g_penalty.even_overflow;
-	}
 
 	for (int i = 0; i < 10; ++i)
 	{
@@ -691,11 +675,7 @@ static void solver1(const int prev, const int length)
 static int score_card(int c, const card_type * const __restrict _cnt)
 {
 	const card_type * const __restrict cnt = util::assume_aligned<MAX_ALIGN>(_cnt);
-	int v = cnt[c];
-	if (v > 0 && (c % 2 == 0 || c == 5)) {
-		v += 1000000;
-	}
-	return v;
+	return cnt[c] * g_penalty.cards_num + g_penalty.weakness[c] + g_dice_dist(engine);
 };
 
 static void solver(const int length)
@@ -718,25 +698,23 @@ static void solver(const int length)
 	for (int i = 0; i < length; ++i)
 	{
 		int max = -1;
+		int ans = -1;
 		for (int j = i == 0; j < 10; ++j)
 		{
 			const int s = score_card(j, cnt);
-			max = std::max(max, s);
-		}
-		std::vector<int> box;
-		for (int j = i == 0; j < 10; ++j)
-		{
-			const int s = score_card(j, cnt);
-			if (s != max)
+			if (max < s)
 			{
-				continue;
+				max = s;
+				ans = j;
 			}
-			box.push_back(j);
 		}
-		std::shuffle(box.begin(), box.end(), engine);
-		int selected = box[0];
-		--cnt[selected];
-		atom.push_back(selected);
+		if (ans == -1)
+		{
+			DBG("funyy!");
+			return;
+		}
+		--cnt[ans];
+		atom.push_back(ans);
 	}
 	std::shuffle(atom.begin(), atom.begin() + length / 2, engine);
 	std::sort(atom.begin() + length / 2, atom.end(), [&pena = std::as_const(g_penalty.weakness)](const int x, const int y) {return pena[x] > pena[y];});
@@ -811,16 +789,8 @@ static void convert(const std::vector<int>& src, mpz_class& dst)
 	}
 }
 
-/**
- * でかい数用
- */
-static void solver_massive(const int length)
+static std::vector<int> generate(const int length)
 {
-	if (length > g_num_hand /*std::min(g_num_hand, 80)*/)
-	{
-		return;
-	}
-
 	ALIGNED hand_type cnt;
 	std::memcpy(cnt, g_hand, sizeof(g_hand));
 	std::vector<int> atom;
@@ -829,32 +799,28 @@ static void solver_massive(const int length)
 		const int from = i == 0 || i + 1 >= length ? 1 : 0;
 		const int step = i + 1 < length ? 1 : 2;
 		int max = -1;
+		int ans = -1;
 		for (int j = from; j < 10; j += step)
 		{
-			const int s = score_card(j, cnt);
-			max = std::max(max, s);
-		}
-		std::vector<int> box;
-		for (int j = from; j < 10; j += step)
-		{
-			const int s = score_card(j, cnt);
-			if (s != max)
+			if (cnt[j] <= 0)
 			{
 				continue;
 			}
-			box.push_back(j);
+			const int s = score_card(j, cnt);
+			if (max < s)
+			{
+				max = s;
+				ans = j;
+			}
 		}
-		if (box.empty())
+		if (ans == -1)
 		{
-			return;
+			DBG("funyy!");
+			return {};
 		}
-		std::shuffle(box.begin(), box.end(), engine);
-		int selected = box[0];
-		--cnt[selected];
-		atom.push_back(selected);
+		--cnt[ans];
+		atom.push_back(ans);
 	}
-	std::shuffle(atom.begin(), atom.begin() + length / 2, engine);
-	std::sort(atom.begin() + length / 2, atom.end(), [&pena = std::as_const(g_penalty.weakness)](const int x, const int y) {return pena[x] > pena[y];});
 	if (atom[0] == 0)
 	{
 		for (int i = 1; i < length; ++i)
@@ -867,61 +833,31 @@ static void solver_massive(const int length)
 		}
 	}
 
-	int odd_length = 0;
-	for (auto ite = atom.rbegin(); ite != atom.rend(); ++ite)
+	return atom;
+}
+
+/**
+ * でかい数用
+ */
+static void solver_massive(const int length)
+{
+	if (length > g_num_hand /*std::min(g_num_hand, 80)*/)
 	{
-		if (*ite % 2 == 0 || *ite == 5)
-		{
+		return;
+	}
+
+	mpz_class number = 1_mpz;
+	for (int i = 0; i < 1000; ++i)
+	{
+		std::vector<int> pa = generate(length);
+		convert(pa, number);
+		if (is_prime(number.get_mpz_t())) {
 			break;
 		}
-		++odd_length;
 	}
-
-	mpz_class number;
-	convert(atom, number);
-
-	if (odd_length > 3)
-	{
-		// shuffle
-		assert (is_possible(number));
-		for (int i = 0; i < 1000; ++i)
-		{
-			if (is_prime(number.get_mpz_t())) {
-				break;
-			}
-			std::shuffle(atom.end() - odd_length, atom.end(), engine);
-			convert(atom, number);
-		}
-		if (is_prime(number.get_mpz_t())) {
-			const std::string str = number.get_str(10);
-			generate_ans(str);
-		}
-	}
-	else
-	{
-		// broute force
-		for (int i = 1; i < 1000; i += 2)
-		{
-			int sub = i;
-			for (int j = 0; j < 3; ++j)
-			{
-				atom[length - 1 - j] = sub % 10;
-				sub /= 10;
-			}
-			convert(atom, number);
-			if (!is_possible(number))
-			{
-				continue;
-			}
-			if (!is_prime(number.get_mpz_t()))
-			{
-				continue;
-			}
-			const std::string str = number.get_str(10);
-			generate_ans(str);
-			// you can return and evaluate
-			return;
-		}
+	if (is_prime(number.get_mpz_t())) {
+		const auto str = number.get_str();
+		generate_ans(str);
 	}
 }
 
@@ -1160,6 +1096,11 @@ int main(int argc, char** argv)
 	{
 		int x = std::stoi(argv[1]);
 		engine.seed(x);
+	}
+
+	{
+		decltype(g_dice_dist)::param_type param(0, g_penalty.random + 1);
+		g_dice_dist.param(param);
 	}
 
 	g_win_root.clear();
