@@ -1103,19 +1103,21 @@ int main(int argc, char** argv)
 #ifdef OPTIMIZE_PARAM
 	{
 		DBG("load param");
-		std::filesystem::path path = std::filesystem::current_path();
-		path = path.parent_path();
-		path += "param.json";
+		std::filesystem::path path(argv[0]);
+		path = path.parent_path().parent_path();
+		path /= "param.json";
+		DBG(path);
 		std::ifstream ifs(path);
 		std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
 		DBG(str);
-		nlohmann::json obj = nlohmann::json::parse(str);
+		const nlohmann::json obj = nlohmann::json::parse(str);
 
 		g_penalty.cards_num = obj["cards_num"].get<int>();
+		DBG(g_penalty.cards_num);
 		g_penalty.random = obj["random"].get<int>();
+		DBG(g_penalty.random);
 		std::vector<int> weakness;
-		auto _weakness(obj["weakness"]);
-		for (const auto& w : _weakness)
+		for (const auto& w : obj["weakness"])
 		{
 			weakness.push_back(w.get<int>());
 		}
@@ -1127,6 +1129,8 @@ int main(int argc, char** argv)
 		for (int i = 0; i < 10; ++i)
 		{
 			g_penalty.weakness[i] = weakness[i];
+			DBG(i);
+			DBG(g_penalty.weakness[i]);
 		}
 	}
 #endif
