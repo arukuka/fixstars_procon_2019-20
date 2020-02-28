@@ -39,11 +39,11 @@ def parse_result(stdout):
     ret = ret + [sub]
   return ret
 
-def round_robin(args):
-  hash2entry = {hash(e): e for e in args.directory.iterdir()}
+def round_robin(directory = Path('./entries'), padding = False, seed = False, controller = Path('./prime_daihinmin.py'), iter = 100):
+  hash2entry = {hash(e): e for e in directory.iterdir()}
   pprint(hash2entry)
   entries = list(hash2entry.keys())
-  if args.padding:
+  if padding:
     entries = entries * 3
   entries.sort()
   pprint(entries)
@@ -55,14 +55,14 @@ def round_robin(args):
   seed = 0
 
   results = dict()
-  for i in range(args.iter):
-    print("[{} / {}]".format(i, args.iter))
+  for i in range(iter):
+    print("[{} / {}]".format(i, iter))
     index = 0
     for battle in matches:
       battlers = list(battle)
       print("\t[{} / {}] {}".format(index, num_match, tuple([hash2entry[x].name for x in battlers])))
       index = index + 1
-      command = ["python", str(args.controller)] \
+      command = ["python", str(controller)] \
           + list(itertools.chain.from_iterable([[str(i), str(hash2entry[x]) + ' ' + str(seed)] for i, x in zip(range(len(battlers)), battlers)])) \
           + ["--seed", str(seed), "--show"]
       print(command, file=sys.stderr)
@@ -85,6 +85,8 @@ def round_robin(args):
       seed = seed + 1
   pprint(results)
 
+  return results
+
 def main():
     parser = ArgumentParser(usage="Usage: %prog [options]")
     parser.add_argument("-d", "--dir", type=Path, dest="directory", default=Path('./entries'))
@@ -96,7 +98,7 @@ def main():
     args = parser.parse_args()
     assert args.controller.is_file()
 
-    round_robin(args)
+    round_robin(directory=args.directory, padding=args.padding, seed=args.seed, controller=args.controller, iter=args.iter)
 
 if __name__ == "__main__":
     main()
