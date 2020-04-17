@@ -18,7 +18,7 @@
 #include <boost/hana/string.hpp>
 
 #include <gmpxx.h>
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 
 constexpr const char* version  = "0.06";
 constexpr const char* revision = "a";
