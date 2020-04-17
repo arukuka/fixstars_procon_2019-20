@@ -1,5 +1,4 @@
 // akemi's PrimeDaihinmin Solver (C) 2019 Fixstars Corp.
-// g++ akemi.cpp -std=c++17 -o akemi -O3 -Wall -Wno-unused-but-set-variable -lgmp
 
 #include <iostream>
 #include <sstream>
@@ -12,14 +11,11 @@
 #include <utility>
 
 #include <gmpxx.h>
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 
 constexpr const char* version  = "0.06";
 constexpr const char* revision = "a";
 constexpr const char* ver_date = "20191225";
-
-std::random_device seed_gen;
-std::default_random_engine engine(seed_gen());
 
 static double TIME_LIMIT = 10.0;
 
@@ -50,6 +46,8 @@ void string2digits(const std::string& s, std::vector<int>& v)
 
 std::string make_candidate(std::vector<int> hand, int length)
 {
+    std::random_device seed_gen;
+    std::default_random_engine engine(seed_gen());
     std::stringstream ss("");
 
     if (length == 1) {
@@ -137,6 +135,8 @@ std::string make_Mersenne(std::vector<int> hand, int length)
 
 std::vector<int> solver(std::vector<int> hand, const mpz_class& number, int length)
 {
+      std::random_device seed_gen;
+      std::default_random_engine engine(seed_gen());
     std::vector<int> cards;
     std::vector<int> ret({});
 
@@ -181,12 +181,8 @@ int main(int argc, char* argv[])
 {
     std::string s;
     const int num_first_cards = 5;
-
-    if (argc > 1)
-    {
-        int x = std::stoi(argv[1]);
-        engine.seed(x);
-    }
+      std::random_device seed_gen;
+      std::default_random_engine engine(seed_gen());
 
     for (;;) {
         getline(std::cin, s);
