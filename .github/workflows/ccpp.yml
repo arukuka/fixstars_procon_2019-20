@@ -11,5 +11,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install misc.
+      run: sudo apt install -y libboost-all-dev libgmp-dev clang-9
     - run: g++ -std=gnu++14 -O2 -Wall -o a.out arukuka.cpp
     - run: clang++-9 -std=c++14 -O2 -Wall -o a.out arukuka.cpp
