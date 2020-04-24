@@ -292,7 +292,7 @@ ALIGNED hand_type g_hand;
 int g_num_hand;
 constexpr int MAX_DIGITS = 16;
 ALIGNED char ans_arr[8192];
-static_assert(sizeof(ans_arr) / sizeof(char) > MAX_DIGITS + (MAX_DIGITS - 1) * 2 + 2);
+static_assert(sizeof(ans_arr) / sizeof(char) > MAX_DIGITS + (MAX_DIGITS - 1) * 2 + 2, "Answer string storage will be lacking");
 const char *ans_ptr = nullptr;
 
 namespace belphegor
@@ -696,7 +696,7 @@ static int score_card(int c, const card_type * const __restrict _cnt)
 		v += 1000000;
 	}
 	return v;
-};
+}
 
 static void solver(const int length)
 {
@@ -739,7 +739,7 @@ static void solver(const int length)
 		atom.push_back(selected);
 	}
 	std::shuffle(atom.begin(), atom.begin() + length / 2, engine);
-	std::sort(atom.begin() + length / 2, atom.end(), [&pena = std::as_const(g_penalty.weakness)](const int x, const int y) {return pena[x] > pena[y];});
+	std::sort(atom.begin() + length / 2, atom.end(), [&pena = g_penalty.weakness](const int x, const int y) {return pena[x] > pena[y];});
 	if (atom[0] == 0)
 	{
 		for (int i = 1; i < length; ++i)
@@ -854,7 +854,7 @@ static void solver_massive(const int length)
 		atom.push_back(selected);
 	}
 	std::shuffle(atom.begin(), atom.begin() + length / 2, engine);
-	std::sort(atom.begin() + length / 2, atom.end(), [&pena = std::as_const(g_penalty.weakness)](const int x, const int y) {return pena[x] > pena[y];});
+	std::sort(atom.begin() + length / 2, atom.end(), [&pena = g_penalty.weakness](const int x, const int y) {return pena[x] > pena[y];});
 	if (atom[0] == 0)
 	{
 		for (int i = 1; i < length; ++i)
