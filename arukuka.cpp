@@ -1,5 +1,6 @@
 // akemi's PrimeDaihinmin Solver (C) 2019 Fixstars Corp.
 // g++ -W -Wall -std=c++17 -O3 -march=native -mavx arukuka.cpp -lgmp -o X -static
+// g++-8 -W -Wall -std=c++17 -O3 -DOPTIMIZE_PARAM -march=native arukuka.cpp -lgmp -o opt_param/X -static -lstdc++fs
 
 #include <iostream>
 #include <sstream>
@@ -455,10 +456,10 @@ struct penalty_t
 {
 	int cards_num;               //!< カードをたくさんもっていることによるペナルティ
 	int random;                  //!< 乱数要素
-	ALIGNED hand_type weakness;  //!< カード事の弱さ
+	ALIGNED int weakness[10];    //!< カード事の弱さ
 };
 
-penalty_t g_penalty = {1'000'000, 50, {1000, 200, 600, 100, 900, 400, 800, 100, 700, 200}};
+penalty_t g_penalty = {52835, 240601, {779533, 508063, 691015, 34354, 809112, 690669, 789183, 28140, 863356, 870089}};
 std::uniform_int_distribution<> g_dice_dist;
 
 static int evaluate(int64_t p)

@@ -7,8 +7,10 @@ from pathlib import Path
 import json
 import optuna
 import round_robin
+import tempfile
+import shutil
 
-def objective(trial, hash):
+def objective(trial, controller, entries_dir, hash):
     card_num = trial.suggest_int('cards_num', 0, 1000000)
     random = trial.suggest_int('random', 0, 1000000)
     weakness = [trial.suggest_int('w' + str(i), 0, 1000000) for i in range(10)]
@@ -19,17 +21,21 @@ def objective(trial, hash):
       'weakness': weakness
     }
 
-    with open("param.json", mode='w') as f:
-      f.write(json.dumps(config))
+    with tempfile.TemporaryDirectory() as dname:
+      temp_dir = Path(dname)
+      temp_entries_dir = temp_dir / Path("./entries")
+      shutil.copytree(entries_dir, temp_entries_dir)
+      with open(temp_dir / Path("param.json"), mode='w') as f:
+        f.write(json.dumps(config))
+      results = round_robin.round_robin(controller=controller, padding=4, directory=temp_entries_dir.resolve())
+      # score = results[hash]['score']
+      score = -(results["stock"] + results["max_cuts"] * 3 * 5) + results["max_cuts"] * 0.001
 
-    results = round_robin.round_robin()
-    score = results[hash]['score']
-
-    print("score = {}, config = {}".format(score, config))
-    return score
+      print("stock = {}, max_cuts = {}, config = {}".format(results["stock"], results["max_cuts"], config))
+      return score
 
 def main():
-    parser = ArgumentParser(usage="Usage: %prog [options]")
+    parser = ArgumentParser()
     parser.add_argument("target", type=Path, help="target binary file")
     parser.add_argument("--study")
     parser.add_argument("--storage")
@@ -39,8 +45,17 @@ def main():
 
     entry = round_robin.hash(args.target)
 
-    study = optuna.create_study()
-    study.optimize(lambda trial: objective(trial, entry), n_trials=100)
+    if args.study and args.storage:
+      print("LOAD STUDY")
+      study = optuna.load_study(study_name=args.study, storage=args.storage)
+    else:
+      print("CREATE STUDY")
+      study = optuna.create_study()
+
+    controller = Path('./prime_daihinmin.py').resolve()
+    entries = Path('./opt_param').resolve()
+
+    study.optimize(lambda trial: objective(trial, controller, entries, entry), n_jobs=-1)
 
 if __name__ == "__main__":
     main()
