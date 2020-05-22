@@ -78,6 +78,7 @@ class PrimeDaihinmin:
             debug_print("0 in hand: {}".format(hand.count(0))) #####
         self.numbers = []
         self.record = []
+        self.max_cuts = 0
 
         print("players: {}".format(", ".join([player.name for player in self.players])), file=sys.stderr)
         print("stock: {}".format(len(self.stock)), file=sys.stderr)
@@ -141,6 +142,8 @@ class PrimeDaihinmin:
         return self.players[uid]
 
     def check_finish(self):
+        if self.numbers[-1] in [97, 997, 9973, 99991]:
+            self.max_cuts = self.max_cuts + 1
         if not self.player.hand:
             print("Winner: {}".format(self.player.name), file=sys.stderr)
             self.clean_players()
@@ -314,6 +317,7 @@ class PrimeDaihinmin:
         for score, name, status, t, rank in results:
             print("{} : {} {} {} {:.3f}".format(rank, name, score, status, t))
         print("stock: {}".format(len(self.stock)))
+        print("max_cuts: {}".format(self.max_cuts))
 
         self.quit_game()
         if os.name == "posix":
