@@ -12,7 +12,6 @@
 #include <set>
 #include <random>
 #include <algorithm>
-#include <filesystem>
 #include <streambuf>
 #include <utility>
 #include <cstddef>
@@ -22,6 +21,10 @@
 
 #include <gmpxx.h>
 #include "nlohmann/json.hpp"
+
+#ifdef OPTIMIZE_PARAM
+#include <filesystem>
+#endif
 
 constexpr const char* version  = "0.06";
 constexpr const char* revision = "a";
