@@ -529,6 +529,10 @@ static void set_action_rewords(const std::vector<std::pair<std::string, card_typ
 				last = index;
 				if (trial[index].second == 0)
 				{
+					if (index != pos_me)
+					{
+						g_action_rewords[start] -= 20'000'000;
+					}
 					break;
 				}
 			}
@@ -538,6 +542,7 @@ static void set_action_rewords(const std::vector<std::pair<std::string, card_typ
 				{
 					break;
 				}
+				trial[index].second += 5;
 			}
 			++index;
 			index %= n;
