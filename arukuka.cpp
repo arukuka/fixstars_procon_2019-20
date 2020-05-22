@@ -35,13 +35,20 @@ const int NUM_FIRST_CARDS = 5;
 
 namespace util
 {
+#if __cplusplus >= 201703L
+#define NODISCARD_ATTR [[nodiscard]]
+#else
+#define NODISCARD_ATTR
+#endif
+
 template < std::size_t N, typename T >
+NODISCARD_ATTR
 #if defined( __clang__ ) || defined( __GNUC__ )
   __attribute__( ( always_inline ) )
 #elif defined( _MSC_VER )
   __forceinline
 #endif
-[[ nodiscard ]] static constexpr T* assume_aligned( T* ptr )
+static constexpr T* assume_aligned( T* ptr )
 {
 #if defined( __clang__ ) || ( defined( __GNUC__ ) && !defined( __ICC ) )
   return reinterpret_cast< T* >( __builtin_assume_aligned( ptr, N ) );
@@ -67,6 +74,8 @@ template < std::size_t N, typename T >
   return ptr;
 #endif
 }
+
+#undef NODISCARD_ATTR
 }
 
 #ifdef SOLVER_DEBUG
