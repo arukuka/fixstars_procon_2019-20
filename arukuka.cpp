@@ -579,6 +579,7 @@ static void set_action_rewords(const std::vector<std::pair<std::string, card_typ
 			g_action_rewords[start] += 10'000'000;
 		}
 	}
+	g_action_rewords[3] += 2'500'000;
 }
 
 static int helper0(int p)
